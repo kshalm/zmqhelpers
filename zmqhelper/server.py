@@ -4,8 +4,9 @@ import threading
 
 class Server():
     def __init__(self, port, n_workers=4):
+        self.port = str(port)
         url_worker = "inproc://workers"
-        url_client = 'tcp://*:'+port
+        url_client = 'tcp://*:'+self.port
         self.context = zmq.Context.instance()
         # Socket to talk to clients
         clients = self.context.socket(zmq.ROUTER)
