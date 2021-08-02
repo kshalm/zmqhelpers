@@ -17,7 +17,7 @@ class Server():
 
         self.workers = []
         for k in range(0, n_workers):
-            self.workers.append(threading.Thread(target=self.start_worker, args=(url_worker,k,)))
+            self.workers.append(threading.Thread(target=self.start_worker, daemon=True, args=(url_worker,k,)))
             self.workers[-1].start()
 
         zmq.proxy(clients, workers)
