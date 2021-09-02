@@ -10,7 +10,7 @@ class Client():
 
     """
     def __init__(self, ip, port):
-        self.ip = str(ip)
+        self.ip = 'tcp://'+str(ip)
         self.port = str(port)
         self.simple_init()
 
@@ -38,6 +38,7 @@ class Client():
             if socks.get(self.socket) == zmq.POLLIN:
                 try:
                     response = self.socket.recv()
+                    response = response.decode()
                 except:
                     response = msgTimeout
                     self.connected = False
@@ -47,6 +48,8 @@ class Client():
             response = msgTimeout
             self.connected = False
             self.reconnect()
+
+
         return(response)
 
     def reconnect(self):

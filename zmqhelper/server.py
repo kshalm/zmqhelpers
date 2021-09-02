@@ -36,7 +36,7 @@ class Server():
 
         while True:
             message = socket.recv()
-            
+            message = message.decode()
             response = self.handle(message)
             # print('worker '+str(k)+' reporting for duty, '+response.decode())
             socket.send(response)
