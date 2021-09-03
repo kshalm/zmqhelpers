@@ -27,7 +27,7 @@ class Client():
     def send_message(self, msg):
         msg = msg.encode()
         msgTimeout = 'Timeout'
-        msgTimeout = msgTimeout.encode()
+        # msgTimeout = msgTimeout.encode()
         
         try:
             self.socket.send(msg)
@@ -38,9 +38,12 @@ class Client():
             if socks.get(self.socket) == zmq.POLLIN:
                 try:
                     response = self.socket.recv()
+                    # print(msg)
+                    # print(response)
+                    # print('')
                     response = response.decode()
                 except:
-                    response = msgTimeout
+                    # response = msgTimeout
                     self.connected = False
                     self.reconnect()
                 return response
