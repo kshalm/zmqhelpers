@@ -43,7 +43,7 @@ class Server():
 
 
     def handle(self, message):
-        return message
+        return message.encode()
 
 if __name__ == '__main__':
     zmqs = Server('5555', n_workers=4)
