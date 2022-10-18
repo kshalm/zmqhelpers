@@ -24,7 +24,7 @@ class Client():
         self.connected = True
 
 
-    def send_message(self, msg):
+    def send_message(self, msg, timeout=10000):
         msg = msg.encode()
         msgTimeout = 'Timeout'
         # msgTimeout = msgTimeout.encode()
@@ -33,7 +33,7 @@ class Client():
             self.socket.send(msg)
         except:
             return(msgTimeout)
-        socks = dict(self.poller.poll(10000))
+        socks = dict(self.poller.poll(timeout))
         if socks:
             if socks.get(self.socket) == zmq.POLLIN:
                 try:
@@ -67,7 +67,7 @@ class Client():
 
 if __name__ == '__main__':
     import time
-    ip = 'tcp://0.0.0.0'
+    ip = '0.0.0.0'
     port = '5555'
     print('creating connection')
     con = Client(ip, port)
@@ -75,5 +75,5 @@ if __name__ == '__main__':
     for i in range(100):
         resp = con.send_message('clientID:'+str(clientID)+' '+str(i))
         time.sleep(0.1)
-        print(resp.decode())
+        print(resp)
     
