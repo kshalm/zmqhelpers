@@ -24,7 +24,7 @@ class Server():
         # We never get here but clean up anyhow
         clients.close()
         workers.close()
-        context.term()
+        self.context.term()
 
 
     def start_worker(self, url_worker, k=0):

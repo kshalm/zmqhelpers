@@ -1,2 +1,4 @@
 pyzmq
-git+git://github.com/kshalm/zmqhelpers
+# git+git://github.com/kshalm/zmqhelpers
+loguru
+redis

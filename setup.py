@@ -1,10 +1,10 @@
 from setuptools import setup
 
 setup(name='zmqhelper',
-      version='0.1',
+      version='0.2',
       description='Convenient server and client classes for pyZMQ',
       url='',
-      author='Krister Shalm, Joseph Cavanagh',
+      author='Krister Shalm',
       author_email='lks@nist.gov',
       license='MIT',
       packages=['zmqhelper'],
