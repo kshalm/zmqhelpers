@@ -30,7 +30,9 @@ class ZMQServiceBase:
         loki_host: str = None,
         loki_port: int = 3100,
         redis_host: str = None,
-        redis_port: int = 6379
+        redis_port: int = 6379,
+        retention: str = "90 days",
+        rotation: str = "30 days"
     ):
         """
         Initialize the ZMQ service base.
@@ -67,6 +69,8 @@ class ZMQServiceBase:
         self._metrics_lock = threading.Lock()
 
         # Setup logging sinks (file, optional Loki)
+        self.rotation=rotation
+        self.retention=retention
         self.log_name = f"{self.service_name}.log"
         self._setup_logger()
         self.logger = logger  # expose logger to subclasses
@@ -95,7 +99,7 @@ class ZMQServiceBase:
         # Remove any existing handlers
         logger.remove()
         # Add rotating text log file
-        logger.add(log_path, rotation="30 days", retention="90 days", enqueue=True, encoding="utf-8")
+        logger.add(log_path, rotation=self.rotation, retention=self.retention, enqueue=True, encoding="utf-8")
 
         # If Loki endpoint provided, add HTTP sink
         if self.loki_host:
