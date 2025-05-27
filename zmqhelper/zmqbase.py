@@ -2,7 +2,6 @@ import zmq
 import time
 import threading
 import signal
-import sys
 import os
 import requests
 import json
@@ -81,6 +80,7 @@ class ZMQServiceBase:
 
         # Redis service registration
         if self.redis_host:
+            logger.info(f"Redis registration enabled for {self.service_name} at {self.redis_host}:{self.redis_port}")
             self._setup_redis_registration()
 
     def _setup_logger(self):
@@ -95,7 +95,7 @@ class ZMQServiceBase:
         # Remove any existing handlers
         logger.remove()
         # Add rotating text log file
-        logger.add(log_path, rotation="30 days", retention="90 days", enqueue=True)
+        logger.add(log_path, rotation="30 days", retention="90 days", enqueue=True, encoding="utf-8")
 
         # If Loki endpoint provided, add HTTP sink
         if self.loki_host:
@@ -276,4 +276,5 @@ class ZMQServiceBase:
         with self._metrics_lock:
             self.metrics["status"] = 0
         time.sleep(1)  # Allow log to flush
-        sys.exit(1)
+        os.exit(1)
+        
