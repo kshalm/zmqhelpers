@@ -95,6 +95,7 @@ class ZMQServiceBase:
         """
         os.makedirs("logs", exist_ok=True)
         log_path = os.path.join("logs", self.log_name)
+        print(f"Log file path: {log_path}")
 
         # Remove any existing handlers
         logger.remove()
@@ -280,5 +281,5 @@ class ZMQServiceBase:
         with self._metrics_lock:
             self.metrics["status"] = 0
         time.sleep(1)  # Allow log to flush
-        os.exit(1)
+        os._exit(1)
         
