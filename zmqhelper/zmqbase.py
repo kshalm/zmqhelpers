@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from loguru import logger
 from typing import Callable
 import redis
+import sys
 
 class ZMQServiceBase:
     """
@@ -87,26 +88,73 @@ class ZMQServiceBase:
             logger.info(f"Redis registration enabled for {self.service_name} at {self.redis_host}:{self.redis_port}")
             self._setup_redis_registration()
 
+    # def _setup_logger(self):
+    #     """
+    #     Configure Loguru sinks:
+    #      - Rotating text file in ./logs/<service>.log
+    #      - Optional Loki HTTP sink if loki_host is provided
+    #     """
+    #     os.makedirs("logs", exist_ok=True)
+    #     log_path = os.path.join("logs", self.log_name)
+    #     print(f"Log file path: {log_path}")
+
+    #     # Remove any existing handlers
+    #     logger.remove()
+    #     # Add rotating text log file
+    #     logger.add(log_path, rotation=self.rotation, retention=self.retention, enqueue=True, encoding="utf-8")
+
+    #     # If Loki endpoint provided, add HTTP sink
+    #     if self.loki_host:
+    #         loki_url = f"http://{self.loki_host}:{self.loki_port}/loki/api/v1/push"
+    #         def loki_sink(message):
+    #             # Build and POST a single-entry Loki push payload
+    #             record = message.record
+    #             ts = int(record["time"].timestamp() * 1e9)
+    #             payload = {
+    #                 "streams": [{
+    #                     "stream": {
+    #                         "service": self.service_name,
+    #                         "level": record["level"].name
+    #                     },
+    #                     "values": [[str(ts), record["message"]]]
+    #                 }]
+    #             }
+    #             try:
+    #                 requests.post(loki_url, json=payload, timeout=1)
+    #             except Exception:
+    #                 logger.error(f"Failed to send log to Loki at {loki_url}")
+    #         # Register the Loki sink
+    #         logger.add(loki_sink, enqueue=True)
+
+    #     logger.info(f"Logger initialized for {self.service_name}")
+    
     def _setup_logger(self):
         """
         Configure Loguru sinks:
-         - Rotating text file in ./logs/<service>.log
-         - Optional Loki HTTP sink if loki_host is provided
+        - Always write a rotating text file to ./logs/<service>.log
+        - If loki_host is provided, also push each record to Loki
         """
         os.makedirs("logs", exist_ok=True)
         log_path = os.path.join("logs", self.log_name)
         print(f"Log file path: {log_path}")
 
-        # Remove any existing handlers
+        # 1) Remove any existing handlers so we start clean
         logger.remove()
-        # Add rotating text log file
-        logger.add(log_path, rotation=self.rotation, retention=self.retention, enqueue=True, encoding="utf-8")
 
-        # If Loki endpoint provided, add HTTP sink
+        # 2) Always add the file sink
+        logger.add(
+            log_path,
+            rotation=self.rotation,
+            retention=self.retention,
+            enqueue=True,
+            encoding="utf-8"
+        )
+
+        # 3) Then, if Loki is configured, add the HTTP sink on top
         if self.loki_host:
             loki_url = f"http://{self.loki_host}:{self.loki_port}/loki/api/v1/push"
+
             def loki_sink(message):
-                # Build and POST a single-entry Loki push payload
                 record = message.record
                 ts = int(record["time"].timestamp() * 1e9)
                 payload = {
@@ -121,9 +169,13 @@ class ZMQServiceBase:
                 try:
                     requests.post(loki_url, json=payload, timeout=1)
                 except Exception:
+                    # Note: This still logs back to the file sink
                     logger.error(f"Failed to send log to Loki at {loki_url}")
-            # Register the Loki sink
+
             logger.add(loki_sink, enqueue=True)
+
+        # 4) (Optional) If you still want console output, re-add it:
+        logger.add(sys.stdout, level="INFO", enqueue=True)
 
         logger.info(f"Logger initialized for {self.service_name}")
 
