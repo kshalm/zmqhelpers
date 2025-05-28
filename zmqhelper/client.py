@@ -37,7 +37,7 @@ class Client:
         Otherwise, polls up to `timeout` ms for a reply.
         """
         try:
-            self.socket.send(msg)            # now will error if >2 s blocked
+            self.socket.send(msg.encode("utf-8"))            # now will error if >2 s blocked
         except zmq.error.Again:
             return "Timeout"
 
