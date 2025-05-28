@@ -25,7 +25,7 @@ class Client:
         # self.socket.setsockopt(zmq.RCVTIMEO, 2000)
 
         self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.connect(f"tcp://{ip}:{port}")
+        self.socket.connect(self.ip + ":" + self.port)
 
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
