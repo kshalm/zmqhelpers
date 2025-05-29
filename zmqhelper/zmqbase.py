@@ -11,6 +11,7 @@ from loguru import logger
 from typing import Callable
 import redis
 import sys
+from client import Client
 
 class ZMQServiceBase:
     """
@@ -34,7 +35,9 @@ class ZMQServiceBase:
         redis_port: int = 6379,
         retention: str = "90 days",
         rotation: str = "30 days",
-        verbose: bool = False
+        verbose: bool = False,
+        health_interval: float = 10.0,
+        health_fail_threshold: int = 5
     ):
         """
         Initialize the ZMQ service base.
@@ -58,6 +61,8 @@ class ZMQServiceBase:
         self.redis_host = redis_host
         self.redis_port = redis_port
         self.verbose = verbose
+        self.health_interval = health_interval
+        self.health_fail_threshold = health_fail_threshold
 
         # Additional custom HTTP routes: path -> handler
         self._extra_routes: dict[str, Callable[[BaseHTTPRequestHandler], None]] = {}
@@ -131,8 +136,9 @@ class ZMQServiceBase:
                 try:
                     requests.post(loki_url, json=payload, timeout=1)
                 except Exception:
+                    pass  # Ignore errors sending to Loki
                     # Note: This still logs back to the file sink
-                    logger.error(f"Failed to send log to Loki at {loki_url}")
+                    # logger.error(f"Failed to send log to Loki at {loki_url}")
 
             logger.add(loki_sink, enqueue=True)
 
@@ -184,6 +190,10 @@ class ZMQServiceBase:
         Start the HTTP server in a background thread and the ZMQ broker+workers in the main thread.
         Catches only top-level broker proxy errors as critical.
         """
+        # Start health monitor thread
+        threading.Thread(target=self._health_monitor, daemon=True).start()
+        self.logger.info(f"Health monitor running every {self.health_interval}s; exit after {self.health_fail_threshold} fails")
+        
         # Launch HTTP server for /metrics and /healthz
         threading.Thread(target=self._run_http_server, daemon=True).start()
         self.logger.info(f"Started HTTP metrics on port {self.http_port}")
@@ -233,6 +243,47 @@ class ZMQServiceBase:
             reply = self.handle_request(message)
             socket.send_string(reply)
 
+    def zmq_test(self) -> bool:
+        """Send a 'test' command to the ZMQ server and check for a response."""
+        try:
+            con = Client("localhost", self.rep_port)
+            
+            resp = con.send_message("test", timeout=2000)  # 2 seconds timeout
+            # print(f"Respnse: {resp}")
+            if resp == "Timeout":
+                self.logger.error("ZMQ test command timed out")
+                return False
+            return True
+        except Exception as e:
+            self.logger.error(f"ZMQ test command failed: {e}")
+            return False
+    
+    def _health_monitor(self):
+        """
+        Periodically exercise the ZMQ endpoint (or /healthz) and
+        count consecutive failures. If we hit the threshold, exit.
+        """
+        fail_count = 0
+        while True:
+            try:
+                ok = self.zmq_test()   # or: requests.get(f"http://127.0.0.1:{self.http_port}/healthz").ok
+            except Exception as e:
+                self.logger.error(f"_health_monitor got exception: {e}")
+                ok = False
+            print(f"Health check result: {ok}")
+            if ok:
+                fail_count = 0
+            else:
+                fail_count += 1
+                self.logger.warning(f"Health check failed: {fail_count}/{self.health_fail_threshold}")
+                print(f"Health check failed: {fail_count}/{self.health_fail_threshold}")
+                if fail_count >= self.health_fail_threshold:
+                    self.logger.error("Too many health failures; exiting for restart.")
+                    print("Too many health failures; exiting for restart.")
+                    os._exit(1)     # immediate, whole‐process exit
+
+            time.sleep(self.health_interval)
+    
     def add_route(self, path: str, fn: Callable[[BaseHTTPRequestHandler], None]):
         """
         Register an extra HTTP GET route.
@@ -253,10 +304,21 @@ class ZMQServiceBase:
                 # Handle extra registered routes first
                 if inner_self.path in self._extra_routes:
                     return self._extra_routes[inner_self.path](inner_self)
+                # if inner_self.path == "/healthz":
+                #     inner_self.send_response(200)
+                #     inner_self.end_headers()
+                #     inner_self.wfile.write(b"ok")
                 if inner_self.path == "/healthz":
-                    inner_self.send_response(200)
-                    inner_self.end_headers()
-                    inner_self.wfile.write(b"ok")
+                    healthy = self.zmq_test()
+                    print(f"HTTP Health check result: {healthy}")
+                    if healthy:
+                        inner_self.send_response(200)
+                        inner_self.end_headers()
+                        inner_self.wfile.write(b"ok")
+                    else:
+                        inner_self.send_response(500)
+                        inner_self.end_headers()
+                        inner_self.wfile.write(b"unhealthy")
                 elif inner_self.path == "/metrics":
                     inner_self.send_response(200)
                     inner_self.send_header("Content-Type", "text/plain")
