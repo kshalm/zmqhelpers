@@ -316,13 +316,13 @@ class ZMQServiceBase:
                         inner_self.end_headers()
                         inner_self.wfile.write(b"ok")
                         with self._metrics_lock:
-                            self.metrics["status"] = 1.0
+                            self.metrics["status"] = 1
                     else:
                         inner_self.send_response(500)
                         inner_self.end_headers()
                         inner_self.wfile.write(b"unhealthy")
                         with self._metrics_lock:
-                            self.metrics["status"] = 0.5
+                            self.metrics["status"] = 0
                         
                 elif inner_self.path == "/metrics":
                     inner_self.send_response(200)
