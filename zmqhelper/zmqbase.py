@@ -11,7 +11,7 @@ from loguru import logger
 from typing import Callable
 import redis
 import sys
-from client import Client
+from .client import Client
 
 class ZMQServiceBase:
     """
