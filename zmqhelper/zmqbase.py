@@ -309,21 +309,21 @@ class ZMQServiceBase:
                 # Handle extra registered routes first
                 if inner_self.path in self._extra_routes:
                     return self._extra_routes[inner_self.path](inner_self)
-                # if inner_self.path == "/healthz":
-                #     inner_self.send_response(200)
-                #     inner_self.end_headers()
-                #     inner_self.wfile.write(b"ok")
                 if inner_self.path == "/healthz":
                     healthy = self.zmq_test()
-                    print(f"HTTP Health check result: {healthy}")
                     if healthy:
                         inner_self.send_response(200)
                         inner_self.end_headers()
                         inner_self.wfile.write(b"ok")
+                        with self._metrics_lock:
+                            self.metrics["status"] = 1.0
                     else:
                         inner_self.send_response(500)
                         inner_self.end_headers()
                         inner_self.wfile.write(b"unhealthy")
+                        with self._metrics_lock:
+                            self.metrics["status"] = 0.5
+                        
                 elif inner_self.path == "/metrics":
                     inner_self.send_response(200)
                     inner_self.send_header("Content-Type", "text/plain")
