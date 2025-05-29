@@ -235,7 +235,7 @@ class ZMQServiceBase:
     def _worker_loop(self, url_worker: str):
         """
         Worker loop: REP socket that receives a string, updates metrics,
-        calls handle_request(), and sends back the reply.
+        calls initial_handle_request(), and sends back the reply.
         """
         socket = self.ctx.socket(zmq.REP)
         socket.connect(url_worker)
@@ -245,7 +245,7 @@ class ZMQServiceBase:
             with self._metrics_lock:
                 self.metrics["request_total"] += 1
             # Delegate to subclass business logic
-            reply = self.handle_request(message)
+            reply = self.initial_handle_request(message)
             socket.send_string(reply)
 
     def zmq_test(self) -> bool:
@@ -349,6 +349,17 @@ class ZMQServiceBase:
         server = HTTPServer(("", self.http_port), Handler)
         server.serve_forever()
 
+    def initial_handle_request(self, msg: str) -> str:
+        """
+        Initial request handler that subclasses can override.
+        This is called before the main handle_request() method.
+        """
+        if str(msg).lower() == "test":
+            self.logger.info("Received test message")
+            return "Test successful"
+        else:
+            return self.handle_request(msg)
+    
     def handle_request(self, msg: str) -> str:
         """
         Override in subclass to process requests.
