@@ -9,7 +9,7 @@ import socket
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from loguru import logger
 from typing import Callable
-import redis
+# import redis
 import sys
 from .client import Client
 
@@ -37,7 +37,8 @@ class ZMQServiceBase:
         rotation: str = "30 days",
         verbose: bool = False,
         health_interval: float = 10.0,
-        health_fail_threshold: int = 3
+        health_fail_threshold: int = 3,
+        registration: bool = False
     ):
         """
         Initialize the ZMQ service base.
@@ -68,6 +69,7 @@ class ZMQServiceBase:
         self.verbose = verbose
         self.health_interval = health_interval
         self.health_fail_threshold = health_fail_threshold
+        self.registration = registration
 
         # Additional custom HTTP routes: path -> handler
         self._extra_routes: dict[str, Callable[[BaseHTTPRequestHandler], None]] = {}
@@ -95,10 +97,10 @@ class ZMQServiceBase:
         # Shared ZeroMQ context
         self.ctx = zmq.Context.instance()
 
-        # Redis service registration
-        if self.redis_host:
-            logger.info(f"Redis registration enabled for {self.service_name} at {self.redis_host}:{self.redis_port}")
-            self._setup_redis_registration()
+        # # Redis service registration
+        # if self.redis_host and self.registration:
+        #     logger.info(f"Redis registration enabled for {self.service_name} at {self.redis_host}:{self.redis_port}")
+        #     self._setup_redis_registration()
     
     def _setup_logger(self):
         """
@@ -153,42 +155,42 @@ class ZMQServiceBase:
 
         logger.info(f"Logger initialized for {self.service_name}")
 
-    def _setup_redis_registration(self):
-        """
-        Initialize Redis client and start background thread for service registration.
-        """
-        # Determine local IP address for service discovery
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            sock.connect(("8.8.8.8", 80))
-            ip_address = sock.getsockname()[0]
-        except OSError:
-            ip_address = "127.0.0.1"
-        finally:
-            sock.close()
-        self._service_ip = ip_address
+    # def _setup_redis_registration(self):
+    #     """
+    #     Initialize Redis client and start background thread for service registration.
+    #     """
+    #     # Determine local IP address for service discovery
+    #     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #     try:
+    #         sock.connect(("8.8.8.8", 80))
+    #         ip_address = sock.getsockname()[0]
+    #     except OSError:
+    #         ip_address = "127.0.0.1"
+    #     finally:
+    #         sock.close()
+    #     self._service_ip = ip_address
 
-        # Create Redis client
-        # self.redis_client = redis.Redis(host=self.redis_host, port=self.redis_port)
-        # Start registration loop
-        # thread = threading.Thread(target=self._redis_registration_loop, daemon=True)
-        # thread.start()
-        # self.logger.info(f"Started Redis registration for {self.service_name} at {self._service_ip}:{self.rep_port}")
+    #     # Create Redis client
+    #     self.redis_client = redis.Redis(host=self.redis_host, port=self.redis_port)
+    #     # Start registration loop
+    #     thread = threading.Thread(target=self._redis_registration_loop, daemon=True)
+    #     thread.start()
+    #     self.logger.info(f"Started Redis registration for {self.service_name} at {self._service_ip}:{self.rep_port}")
 
-    def _redis_registration_loop(self):
-        """
-        Periodically register the service IP and port in Redis with a TTL for keep-alive.
-        """
-        key = f"services:{self.service_name}"
-        while True:
-            # Prepare registration payload
-            value = json.dumps({"ip": self._service_ip, "port": self.rep_port})
-            try:
-                # Set key with expiry of 10 seconds; catch only Redis-related errors
-                self.redis_client.set(key, value, ex=10)
-            except redis.RedisError as e:
-                self.logger.error(f"Failed to register in Redis: {e}")
-            time.sleep(5)
+    # def _redis_registration_loop(self):
+    #     """
+    #     Periodically register the service IP and port in Redis with a TTL for keep-alive.
+    #     """
+    #     key = f"services:{self.service_name}"
+    #     while True:
+    #         # Prepare registration payload
+    #         value = json.dumps({"ip": self._service_ip, "port": self.rep_port})
+    #         try:
+    #             # Set key with expiry of 10 seconds; catch only Redis-related errors
+    #             self.redis_client.set(key, value, ex=10)
+    #         except redis.RedisError as e:
+    #             self.logger.error(f"Failed to register in Redis: {e}")
+    #         time.sleep(5)
 
     def start(self):
         """
