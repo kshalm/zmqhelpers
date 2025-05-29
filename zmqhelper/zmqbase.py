@@ -51,6 +51,11 @@ class ZMQServiceBase:
             loki_port: Port of the Loki HTTP API (default 3100).
             redis_host: Optional Redis host for service registration. If None, registration is disabled.
             redis_port: Port of the Redis service (default 6379).
+            retention: Log file retention policy (default "90 days").
+            rotation: Log file rotation policy (default "30 days").
+            verbose: If True, also log to stdout.
+            health_interval: Interval in seconds for health checks (default 10.0).
+            health_fail_threshold: Number of consecutive health check failures before exiting (default 3).
         """
         self.rep_port = rep_port
         self.http_port = http_port
