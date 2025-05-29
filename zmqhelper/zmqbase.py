@@ -37,7 +37,7 @@ class ZMQServiceBase:
         rotation: str = "30 days",
         verbose: bool = False,
         health_interval: float = 10.0,
-        health_fail_threshold: int = 5
+        health_fail_threshold: int = 3
     ):
         """
         Initialize the ZMQ service base.
