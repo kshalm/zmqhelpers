@@ -357,7 +357,7 @@ class ZMQServiceBase:
         This is called before the main handle_request() method.
         """
         if str(msg).lower() == "test":
-            self.logger.info("Received test message")
+            self.logger.debug("Received test message")
             return "Test successful"
         else:
             return self.handle_request(msg)
