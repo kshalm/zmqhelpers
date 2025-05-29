@@ -169,11 +169,11 @@ class ZMQServiceBase:
         self._service_ip = ip_address
 
         # Create Redis client
-        self.redis_client = redis.Redis(host=self.redis_host, port=self.redis_port)
+        # self.redis_client = redis.Redis(host=self.redis_host, port=self.redis_port)
         # Start registration loop
-        thread = threading.Thread(target=self._redis_registration_loop, daemon=True)
-        thread.start()
-        self.logger.info(f"Started Redis registration for {self.service_name} at {self._service_ip}:{self.rep_port}")
+        # thread = threading.Thread(target=self._redis_registration_loop, daemon=True)
+        # thread.start()
+        # self.logger.info(f"Started Redis registration for {self.service_name} at {self._service_ip}:{self.rep_port}")
 
     def _redis_registration_loop(self):
         """
